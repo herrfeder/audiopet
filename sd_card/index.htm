@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+	<style>
+
+	h6 {	
+		margin-bottom: 0; 
+		padding-bottom: 0;
+		text-align: right;
+		color: #2F4F4F;
+	}
+
+	h4 {
+		margin-bottom: 0;
+		padding-bottom: 0;
+		text-align: center;
+		background-color: grey;
+		border-radius: 4px;
+		margin: 4px;
+		color: white;
+	}
+
+	button:disabled {
+		background-color: grey;
+	}
+
+
+	.textfield {
+		border: none;
+		background-color: #DCDCDC;
+		border-radius: 4px;
+		margin: 2px;
+		width: 100%;
+		text-align: center;
+	}
+
+
+	.track_button {
+		position:relative;
+		border-radius: 4px;
+		margin: 2px;
+    		border: none;
+    		text-align: center;
+    		text-decoration: none;
+    		display: inline-block;
+    		font-size: 16px;
+		height: 40px;
+	}
+
+	.track_button:hover {
+
+		opacity: 0.7;
+	}
+
+	.tracks {
+		margin: 10px;
+		background-color: #BDB76B;
+		border-radius: 4px;
+		opacity: 50%;
+		width: 80%;
+		font-color: #2F4F4F;
+		font-size: 20px;
+	}
+
+	.tracks:hover {
+		opacity: 0.7;
+	}
+
+	.slider {
+	    -webkit-appearance: none;
+	    height: 40px;
+	    background: #d3d3d3;
+	    outline: none;
+	    opacity: 0.7;
+	    -webkit-transition: .2s;
+	    transition: opacity .2s;
+	    border-radius: 4px;
+	}
+
+	.slider:hover {
+	    opacity: 1;
+	}
+
+	.slider::-webkit-slider-thumb {
+	    -webkit-appearance: none;
+	    appearance: none;
+	    width: 25px;
+	    height: 40px;
+	    background: #4CAF50;
+	    cursor: pointer;
+	}
+
+	.slider::-moz-range-thumb {
+	    width: 25px;
+	    height: 40px;
+	    background: #4CAF50;
+	    cursor: pointer;
+	}
+
+	#delete_button {
+		left: 40px;
+	}
+
+	#download_button {
+		left: 20px;
+	}
+
+	#vol_slider {
+		margin: 2px auto;
+	}
+
+
+	#track_list {
+		border: none;
+		background-color: #DCDCDC;
+		border-radius: 4px;
+		margin: 2px;
+		width: 100%;
+		text-align: center;
+
+	}
+
+	#track_div {
+		width: 100%;
+	}
+
+	#main_table {
+		width: 100%;
+	}
+
+	#tracks_table {
+		width: 100%;
+	}
+
+	#tracks_cell {
+		width: 100%;
+	}
+
+	#inner_tracks_cell {
+		width: 100%;
+	}
+
+	#button_cell {
+		width: 100%;
+	}
+
+	
+	#myProgress {
+		width: 100%;
+		background-color: #DCDCDC;
+		margin: 1px;
+		border-radius: 2px;
+	}
+
+	#myBar {
+		width: 0%;
+		height: 20px;
+		background-color: #66CDAA;
+		border-radius: 2px;
+	}
+
+	#status_text {
+		background-color: #DCDCDC;
+	}
+
+	#uploadfiles {
+		background-color: #DCDCDC;
+		border-radius: 4px;
+	}
+
+
+	</style>
+</head>
+
+        <meta charset="utf-8">
+        <script>
+
+
+/* 	###################
+	### SEND TO ESP ### 
+ 	###################
+ */
+	function SendMusic(tracknr)
+	{
+		music_value = "?m=start";
+
+		var track_value = ""
+		if (tracknr)
+			track_value = "&t="+
+				String(document.getElementById("track_list")[tracknr].innerHTML);
+		var strText = music_value+track_value;
+
+		var request = new XMLHttpRequest();
+		request.open("GET", "music"+ strText,true);
+
+	    	request.onreadystatechange = function() {
+		       var response = JSON.parse(this.responseText);
+	       		console.log(this.responseText);	       
+			PrintLog(response[0].modi + "Track: " + response[0].track);
+		}
+
+		request.send(null);
+
+	}
+	
+	function PlayNext(tracknr)
+	{
+		var track_list = document.getElementById("track_list");
+		var tracks = track_list.options;
+
+		music_value = "?m=next";
+
+		var track_value = ""
+		if (tracknr)
+			track_value = "&t="+String(track_list[tracknr].innerHTML);
+		var strText = music_value+track_value;
+
+		var request = new XMLHttpRequest();
+		request.open("GET", "music"+ strText,true);
+
+	    	request.onreadystatechange = function() { 
+			var response = JSON.parse(this.responseText);
+			PrintLog(response[0].modi + "Track: " + response[0].track);
+			ChangeSelectedTrack(response[0].track);
+		}
+
+		request.send(null);
+
+	}
+
+	function SendPause() 
+	{
+		music_value = "?m=pause";
+
+		var strText = music_value;
+
+		var request = new XMLHttpRequest();
+		request.open("GET", "music"+ strText,true);
+
+	    	request.onreadystatechange = function() { 
+			PrintLog(this.responseText);
+
+		}
+		request.send(null);
+
+	}
+
+
+	function SendVolume(value)
+	{
+		var vol_value = "?v="+String(value);
+		var strText = vol_value;
+
+		var request = new XMLHttpRequest();
+		request.open("GET", "volume"+strText,true);
+		reuest.onreadystatechange = function() {
+			PrintLog(this.responseText);
+		}
+		request.send(null);
+	}
+	
+	function DeleteTrack(tracknr) {
+
+		var track_path=String(document.getElementById("track_list")[tracknr].innerHTML);
+		var request = new XMLHttpRequest();
+		request.open("DELETE","edit?file=/"+track_path,true);
+		request.onreadystatechange = function() {
+			PrintLog(this.responseText);
+		}
+
+		request.send();
+		GetTrackList();
+	}
+
+	function uploadFile(file,filename_new) {	
+
+		PrintLog("# Upload File:"+file.name);
+		var url = 'edit';
+	    	var request = new XMLHttpRequest();
+	    	var fd = new FormData();
+		var file_size = file.size;
+		current_size = 0; // has to be global, to be accessible by ProgressBar
+	    	
+		ProgressBar(file_size,current_size);
+
+		request.open("POST", url, true);
+		
+	    	request.onreadystatechange = function() {
+			var size_temp = this.responseText.split("][").pop();
+			console.log(size_temp);
+			size_temp = size_temp.split('"}]')[0].split(':"')[1];
+			console.log(size_temp);
+			if (size_temp)
+				size_temp = size_temp.split('"}')[0];
+			current_size = size_temp;
+			
+			if (request.readyState == 4 && request.status == 200) {
+		    		// Every thing ok, file uploaded
+		    		PrintLog("# Upload finished"); // handle response.
+				GetTrackList();
+			}
+	    	}
+		fd.append("upload_file", file, filename_new);
+	    	request.send(fd);
+
+	}
+
+	function GetTrackList()
+	{	
+		document.getElementById("track_list").innerHTML = "";
+		var request = new XMLHttpRequest();
+		request.open("GET","list?dir=/",true);
+	    	request.onreadystatechange = function() {
+			var json_obj = JSON.parse(this.responseText);
+			PrintTrackList(json_obj);
+		}
+		request.send();
+			
+	}
+
+
+
+/*	##############################
+	### INITIALIZING INTERFACE ###
+	##############################
+*/
+	function GetInit()
+	{
+		DEBUG = 0;
+		history_log = "";
+
+		GetButtons();
+		DebugFilling();
+		DeleteLog();
+
+		if (!DEBUG) {
+			GetTrackList();
+			UpdateStatus();
+		}
+	}
+	
+	function DebugFilling() {
+			
+		console.log("DEBUG: Track");
+		
+		if (DEBUG) {
+			document.getElementById("track_list").innerHTML = "<option class='tracks' value='1'>test_value</option>";
+		}
+	}
+
+
+	function DeleteLog()
+	{
+		document.getElementById("log_text").value = "";
+	}
+
+	function UpdateStatus() 
+	{
+		document.getElementById("status_text").value="IDLE";
+		var request = new XMLHttpRequest();
+		request.open("GET", "status",true);
+
+	    	request.onreadystatechange = function() { 
+			PrintStatus(JSON.parse(this.responseText));
+
+		}
+
+		request.send(null);
+	}
+
+	function FileDialogue(itself) {
+	    var files = itself.files;
+	    for(var i=0; i<files.length; i++){
+		prepFile(itself.files[i]); // call the function to upload the file
+	    }
+	}
+
+	function GetButtons() {
+		console.log("Inside GetButtons");	
+		if (document.getElementById("delete_button"))
+			document.getElementById("delete_button").remove();
+		if (document.getElementById("download_button"))
+			document.getElementById("download_button").remove();
+		if (document.getElementById("play_button"))
+			document.getElementById("play_button").remove();
+		if (document.getElementById("pause_button"))
+			document.getElementById("pause_button").remove();
+
+		var vol_slider = document.createElement("INPUT");
+		vol_slider.id = "vol_slider";
+		vol_slider.className = "slider";
+		vol_slider.setAttribute("type", "range");
+		vol_slider.setAttribute("min","0");
+		vol_slider.setAttribute("max","10");
+		vol_slider.setAttribute("step","1");
+		vol_slider.setAttribute("value","0");
+		vol_slider.setAttribute("onchange","SendVolume(this.value)");
+		document.getElementById("slider_field").appendChild(vol_slider);
+
+
+
+		var button_play = document.createElement("BUTTON");
+		button_play.id = "play_button";
+		button_play.className = "track_button";
+		var textnode = document.createTextNode("Play");
+		button_play.appendChild(textnode);
+
+		button_play.disabled = true;
+		document.getElementById("play_field").appendChild(button_play);
+		
+		var button_pause = document.createElement("BUTTON");
+		button_pause.id = "pause_button";
+		button_pause.className = "track_button";
+		var textnode = document.createTextNode("Pause");
+		button_pause.setAttribute("onclick","SendPause()");
+
+		button_pause.style.backgroundColor = "#AFEEEE";
+		button_pause.appendChild(textnode);
+		document.getElementById("play_field").appendChild(button_pause);
+
+		var button_next = document.createElement("BUTTON");
+		button_next.id = "next_button";
+		button_next.className = "track_button";
+		var textnode = document.createTextNode("Next")
+		button_next.appendChild(textnode);
+		button_next.disabled = true;
+		document.getElementById("play_field").appendChild(button_next);
+
+
+
+		var button_download = document.createElement("BUTTON");
+		button_download.id = "download_button";
+		button_download.className = "track_button";
+		var textnode = document.createTextNode("Download")
+		button_download.appendChild(textnode);
+
+		button_download.disabled = true;
+		document.getElementById("play_field").appendChild(button_download);
+		
+		var button_delete = document.createElement("BUTTON");
+		button_delete.id = "delete_button";
+		button_delete.className = "track_button";
+		var textnode = document.createTextNode("Delete")
+		button_delete.appendChild(textnode);
+		button_delete.disabled = true;
+		document.getElementById("play_field").appendChild(button_delete);
+		
+	}
+/*	#####################
+   	### Output to Web ###
+	#####################
+*/
+	function PrintTrackList(json_obj) {
+
+		var listbox;
+		var track_cnt=0;
+
+		for (i=0;i<json_obj.length;i++) {
+			if (json_obj[i].name.includes("MP3")) {
+				listbox +='<option class="tracks" value="'+track_cnt+'">'+json_obj[i].name+'</option>';
+				track_cnt++;
+			}
+		}		
+		if (document.getElementById("track_list").innerHTML.length == 0)	
+			document.getElementById("track_list").innerHTML += listbox; 
+
+	}
+
+
+	function PrintLog(text) {
+
+		if (history_log != text) {
+			document.getElementById("log_text").value+=
+				"\r\n"+String(text);
+		}
+
+
+		history_log = text;
+	}
+
+	function ChangeSelectedTrack(track_name) { 
+		
+		var track_list = document.getElementById("track_list");
+		var tracks = track_list.options;	
+		for (var opt, j = 0; opt = tracks[j]; j++) {
+			console.log(opt.value);
+			console.log(track_name);
+			if (opt.innerHTML == track_name) {
+				track_list.selectedIndex = j;
+				break;
+			}
+		}
+	}
+
+	function PrintStatus(text) {
+		document.getElementById("status_text").value = text;
+	}
+        
+	function ProgressBar(file_size) {
+  		var elem = document.getElementById("myBar");   
+  		var width = 0;
+  		var id = setInterval(frame, 100);
+		function frame() {
+			if (current_size >= (file_size-3000)) {
+				elem.style.width = "0%";
+				clearInterval(id);
+				} else {
+					width = Math.round((parseInt(current_size)/parseInt(file_size))*100);
+					elem.style.width = width + '%'; 
+					}
+				}
+	}
+
+
+/*	#################
+	### Utilities ###
+	#################
+*/
+
+	function prepFile(file){
+		if (!file.name.endsWith("mp3")) {
+			if (file.name.endsWith("index.htm")) {
+				PrintLog("Upload new index.htm file");
+				uploadFile(file,"index.htm");
+			} else {
+		       	PrintStatus("You have to upload mp3 format.")
+			return;
+			}
+		}
+		if (file.name.length > 11) {
+		    	var filename_new = file.name.slice(0,6)+".mp3";
+			PrintLog("Filename "+file.name+" will be shortened to "+filename_new);
+		}
+
+		uploadFile(file,filename_new);
+
+	}
+
+	
+
+
+
+	function assignButtons(tracknr) {
+		console.log("inside assignButtons");
+		var deb = document.getElementById("delete_button");
+		var dob = document.getElementById("download_button");
+		var plb = document.getElementById("play_button");
+		var neb = document.getElementById("next_button");
+
+
+		deb.disabled = false;
+		dob.disabled = false;
+		plb.disabled = false;
+		neb.disabled = false;
+
+		deb.style.backgroundColor = "red";
+		dob.style.backgroundColor = "green";
+		plb.style.backgroundColor = "#FB98FB";
+		neb.style.backgroundColor = "blue";		
+				
+		deb.onclick = function(){DeleteTrack(tracknr)};
+		dob.onclick = function(){DownloadTrack(tracknr)};
+		plb.onclick = function(){SendMusic(tracknr)};
+		neb.onclick = function(){PlayNext(tracknr)};
+	}
+
+	</script>
+    </head>
+
+    <body onload="GetInit()" id="body">
+	
+	    <table id="main_table">
+		<tr>
+			<th>
+			<table id="tracks_table">
+				<tr>
+					<td colspan=4 id="inner_tracks_cell">
+					<h6>Tracks</h6>
+	    				<div id="track_div">
+						<select id="track_list" class="textfield" name="track_text" size="10" onClick="assignButtons(this.selectedIndex)">Choose a track</select>
+					</div>
+					</td>
+				</tr>
+				<tr>
+					<td id="slider_cell">
+					<div id="slider_field"></div>
+					</td>
+					<td id="button_cell">
+					<div id="play_field" style="width:80%;">
+					
+					</div>
+					</td>
+			</tr>
+			</table>
+			</th>
+			<th>
+			<table>
+				<tr>
+					<th>
+					<h6>Log</h6>
+					<form id="txt_form" class="status" name="frmText">
+            				<textarea name="log_text" class="textfield"  id="log_text" rows="6" cols="40"></textarea>
+        				</form>
+					</th>
+				</tr>
+				<tr>
+					<th>
+					<h6>Status</h6>
+					<form id="txt_form" class="status" name="frmText">
+            				<textarea name="status_text" class="textfield"  id="status_text" rows="1" cols="40"></textarea>
+        				</form>
+					</th>
+				</tr>
+				<tr>
+					<th>
+					<h6>Upload</h6>
+					<input type="file" class="track_button" id="uploadfiles" multiple="multiple" onchange="FileDialogue(this)"/>
+					<div id="myProgress">
+		  			<div id="myBar"></div>
+					</div>
+					</th>
+				</tr
+				<tr>
+					<th>
+					<h4>featherplayer 0.1</h4>
+					</th>
+				</tr>
+			</table>
+			</th>
+		</tr>
+	</table>
+    </body>
+</html>
+
